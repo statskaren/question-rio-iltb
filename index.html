@@ -432,15 +432,27 @@
   <!-- 13 -->
   <div class="section" id="s13">
     <div class="q-header"><span class="q-num">13</span><span class="q-text">É fumante?</span></div>
-    <div class="radio-row" style="margin-top:5px;"><input type="radio" name="fumante" value="Não" onchange="tog('fum_det',false)"/><label>Não</label></div>
-    <div class="radio-row"><input type="radio" name="fumante" value="Sim" onchange="tog('fum_det',true)"/><label>Sim</label></div>
+    <div class="radio-row" style="margin-top:5px;"><input type="radio" name="fumante" value="Não" onchange="togFum('none')"/><label>Não</label></div>
+    <div class="radio-row"><input type="radio" name="fumante" value="Sim" onchange="togFum('sim')"/><label>Sim</label></div>
+    <div class="radio-row"><input type="radio" name="fumante" value="Ex-fumante" onchange="togFum('ex')"/><label>Ex-fumante</label></div>
+
     <div class="indent" id="fum_det" style="display:none;">
-      <div class="field-group" style="margin-bottom:6px;"><span class="lbl">Há quanto tempo?</span><input class="line-input" id="fum_tempo" type="text" /></div>
+      <div class="field-group" style="margin-bottom:6px;"><span class="lbl">Há quanto tempo fuma?</span><input class="line-input" id="fum_tempo" type="text" /></div>
       <div class="field-group" style="margin-bottom:6px;"><span class="lbl">Cigarros por dia</span><input class="line-input" id="fum_qtd" type="number" min="0" style="width:60px;" /></div>
       <div>
         <div class="sub-lbl">Tempo até o 1º cigarro após acordar</div>
         <div class="radio-row"><input type="radio" name="cig_t" value="Menos de 30 min"/><label>Menos de 30 minutos</label></div>
         <div class="radio-row"><input type="radio" name="cig_t" value="Mais de 30 min"/><label>Mais de 30 minutos</label></div>
+      </div>
+    </div>
+
+    <div class="indent" id="exfum_det" style="display:none;">
+      <div class="field-group" style="margin-bottom:6px;"><span class="lbl">Há quanto tempo fumou?</span><input class="line-input" id="exfum_tempo" type="text" /></div>
+      <div class="field-group" style="margin-bottom:6px;"><span class="lbl">Cigarros por dia (quando fumava)</span><input class="line-input" id="exfum_qtd" type="number" min="0" style="width:60px;" /></div>
+      <div>
+        <div class="sub-lbl">Tempo até o 1º cigarro após acordar (quando fumava)</div>
+        <div class="radio-row"><input type="radio" name="excig_t" value="Menos de 30 min"/><label>Menos de 30 minutos</label></div>
+        <div class="radio-row"><input type="radio" name="excig_t" value="Mais de 30 min"/><label>Mais de 30 minutos</label></div>
       </div>
     </div>
     <div class="error-msg">Selecione uma opção.</div>
@@ -655,7 +667,7 @@ var COLS = [
   'contato_tb','contato_onde','contato_quem','contato_tempo',
   'tosse','tosse_tempo','tosse_semanas',
   'expectoracao','expec_tempo','expec_semanas',
-  'fumante','fumante_tempo','cigarros_dia','primeiro_cigarro',
+  'fumante','fumante_tempo','cigarros_dia','primeiro_cigarro','exfum_tempo','exfum_qtd','exfum_primeiro_cigarro',
   'doenca_pulmonar','doenca_pulmonar_qual',
   'outras_doencas','doenca_hipertensao','doenca_diabetes','doenca_hepatite','doenca_hiv','doenca_outra',
   'pcmso','pcmso_qual',
@@ -680,7 +692,7 @@ var LABELS = {
   contato_tb:'Contato com TB?', contato_onde:'Contato - Onde', contato_quem:'Contato - Quem', contato_tempo:'Contato - Tempo',
   tosse:'Tosse?', tosse_tempo:'Tosse - Tempo', tosse_semanas:'Tosse - Semanas',
   expectoracao:'Expectoração?', expec_tempo:'Expec. - Tempo', expec_semanas:'Expec. - Semanas',
-  fumante:'Fumante?', fumante_tempo:'Fumante há', cigarros_dia:'Cigarros/dia', primeiro_cigarro:'1º cigarro após acordar',
+  fumante:'Fumante?', fumante_tempo:'Fumante há', cigarros_dia:'Cigarros/dia', primeiro_cigarro:'1º cigarro após acordar', exfum_tempo:'Ex-fumante há quanto tempo fumou', exfum_qtd:'Ex-fumante cigarros/dia', exfum_primeiro_cigarro:'Ex-fumante 1º cigarro após acordar',
   doenca_pulmonar:'Doença Pulmonar?', doenca_pulmonar_qual:'Doença Pulmonar - Qual',
   outras_doencas:'Outras Doenças?',
   doenca_hipertensao:'Hipertensão', doenca_diabetes:'Diabetes Mellitus',
@@ -700,6 +712,12 @@ var LABELS = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function tog(id, show) { var e=document.getElementById(id); if(e) e.style.display=show?'block':'none'; }
+function togFum(mode) {
+  var sim=document.getElementById('fum_det');
+  var ex=document.getElementById('exfum_det');
+  if(sim) sim.style.display=(mode==='sim'?'block':'none');
+  if(ex)  ex.style.display=(mode==='ex'?'block':'none');
+}
 function v(id) { return (document.getElementById(id)||{}).value||''; }
 function r(name) { var e=document.querySelector('input[name="'+name+'"]:checked'); return e?e.value:''; }
 function cb(id) { return !!(document.getElementById(id)&&document.getElementById(id).checked); }
@@ -738,6 +756,7 @@ function coletarDados() {
     expectoracao: r('expec'), expec_tempo: r('expec_t'), expec_semanas: v('expec_sem'),
     fumante: r('fumante'), fumante_tempo: v('fum_tempo'),
     cigarros_dia: v('fum_qtd'), primeiro_cigarro: r('cig_t'),
+    exfum_tempo: v('exfum_tempo'), exfum_qtd: v('exfum_qtd'), exfum_primeiro_cigarro: r('excig_t'),
     doenca_pulmonar: r('pulmonar'), doenca_pulmonar_qual: v('pulm_qual'),
     outras_doencas: r('outra_doenca'),
     doenca_hipertensao: cb('d1')?'Sim':'Não',
@@ -1014,6 +1033,7 @@ function limparForm(silent) {
   document.querySelectorAll('input[type=text],input[type=number],input[type=date],textarea').forEach(function(el){el.value='';});
   document.querySelectorAll('input[type=radio],input[type=checkbox]').forEach(function(el){el.checked=false;});
   document.querySelectorAll('.indent').forEach(function(el){el.style.display='none';});
+  document.querySelectorAll('input[name="excig_t"]').forEach(function(el){el.checked=false;});
   document.querySelectorAll('.section.invalid').forEach(function(el){el.classList.remove('invalid');});
   document.querySelectorAll('.field-err').forEach(function(el){el.textContent='';});
   document.querySelectorAll('.input-err').forEach(function(el){el.classList.remove('input-err');});
