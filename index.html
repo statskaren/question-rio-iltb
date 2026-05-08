@@ -225,6 +225,11 @@
 </div>
 
 <div class="page">
+  <div style="text-align:center;margin-bottom:1rem;">
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#1a3a5c;line-height:1.5;">
+      Projeto "Tuberculose latente e ativa em trabalhadores e profissionais de saúde da rede de atenção em duas regiões do estado de São Paulo - Brasil"
+    </p>
+  </div>
   <h1>Questionário para os Participantes</h1>
 
   <div class="header-grid">
@@ -248,6 +253,33 @@
     <input class="line-input" id="nome" type="text" placeholder="Nome completo do participante" oninput="valAlfa(this,'nome_err')" />
     <div class="field-err" id="nome_err"></div>
     <div class="error-msg">Campo obrigatório.</div>
+  </div>
+
+  <!-- 1b - Identificação -->
+  <div class="section">
+    <div class="q-header"><span class="q-num" style="background:#e8f0f8;color:#1a3a5c;">ID</span><span class="q-text">Identificação</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+      <div class="field-group">
+        <span class="lbl">RG</span>
+        <input class="line-input" id="rg" type="text" placeholder="Ex: 12.345.678-9" oninput="valRG(this)" />
+        <div class="field-err" id="rg_err"></div>
+      </div>
+      <div class="field-group">
+        <span class="lbl">CPF</span>
+        <input class="line-input" id="cpf" type="text" placeholder="Ex: 123.456.789-00" oninput="valCPF(this)" />
+        <div class="field-err" id="cpf_err"></div>
+      </div>
+      <div class="field-group">
+        <span class="lbl">Telefone</span>
+        <input class="line-input" id="telefone" type="text" placeholder="Ex: (11) 99999-9999" oninput="valTelefone(this)" />
+        <div class="field-err" id="tel_err"></div>
+      </div>
+      <div class="field-group">
+        <span class="lbl">Número SUS (CNS)</span>
+        <input class="line-input" id="num_sus" type="text" placeholder="15 dígitos" oninput="valSUS(this)" />
+        <div class="field-err" id="sus_err"></div>
+      </div>
+    </div>
   </div>
 
   <!-- 2 -->
@@ -615,7 +647,7 @@ if (sheetsUrl) showUrlOk();
 var COLS = [
   'digitador','timestamp',
   'num_questionario','estabelecimento','data',
-  'nome','pai','mae','idade','data_nascimento',
+  'nome','rg','cpf','telefone','num_sus','pai','mae','idade','data_nascimento',
   'profissao','tempo_servico','tempo_servico_anos',
   'estado_civil','cor_raca','naturalidade','nacionalidade',
   'nivel_instrucao',
@@ -640,7 +672,7 @@ var COLS = [
 var LABELS = {
   digitador:'Digitador', timestamp:'Data/Hora registro',
   num_questionario:'Nº Questionário', estabelecimento:'Estabelecimento', data:'Data',
-  nome:'Nome', pai:'Pai', mae:'Mãe', idade:'Idade (anos)', data_nascimento:'Data Nascimento',
+  nome:'Nome', rg:'RG', cpf:'CPF', telefone:'Telefone', num_sus:'Número SUS (CNS)', pai:'Pai', mae:'Mãe', idade:'Idade (anos)', data_nascimento:'Data Nascimento',
   profissao:'Profissão', tempo_servico:'Tempo de Serviço', tempo_servico_anos:'Anos de Serviço',
   estado_civil:'Estado Civil', cor_raca:'Cor/Raça', naturalidade:'Naturalidade', nacionalidade:'Nacionalidade',
   nivel_instrucao:'Nível de Instrução',
@@ -688,6 +720,7 @@ function coletarDados() {
     estabelecimento: v('estabelecimento'),
     data: v('data_form'),
     nome: v('nome'),
+    rg: v('rg'), cpf: v('cpf'), telefone: v('telefone'), num_sus: v('num_sus'),
     pai: v('pai'), mae: v('mae'),
     idade: v('idade'), data_nascimento: v('data_nasc'),
     profissao: v('profissao'),
@@ -931,6 +964,50 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+function valRG(input) {
+  var el = document.getElementById('rg_err');
+  if(!el) return;
+  var val = input.value.replace(/[\.\-\s]/g,'');
+  if(input.value===''){ el.textContent=''; input.classList.remove('input-err'); return; }
+  if(!/^\d{7,9}[0-9Xx]?$/.test(val)){
+    el.textContent='⚠ RG inválido.';
+    input.classList.add('input-err');
+  } else { el.textContent=''; input.classList.remove('input-err'); }
+}
+
+function valCPF(input) {
+  var el = document.getElementById('cpf_err');
+  if(!el) return;
+  var val = input.value.replace(/[\.\-\s]/g,'');
+  if(input.value===''){ el.textContent=''; input.classList.remove('input-err'); return; }
+  if(!/^\d{11}$/.test(val)){
+    el.textContent='⚠ CPF deve ter 11 dígitos.';
+    input.classList.add('input-err');
+  } else { el.textContent=''; input.classList.remove('input-err'); }
+}
+
+function valTelefone(input) {
+  var el = document.getElementById('tel_err');
+  if(!el) return;
+  var val = input.value.replace(/[\(\)\-\s]/g,'');
+  if(input.value===''){ el.textContent=''; input.classList.remove('input-err'); return; }
+  if(!/^\d{10,11}$/.test(val)){
+    el.textContent='⚠ Telefone deve ter 10 ou 11 dígitos (com DDD).';
+    input.classList.add('input-err');
+  } else { el.textContent=''; input.classList.remove('input-err'); }
+}
+
+function valSUS(input) {
+  var el = document.getElementById('sus_err');
+  if(!el) return;
+  var val = input.value.replace(/\s/g,'');
+  if(input.value===''){ el.textContent=''; input.classList.remove('input-err'); return; }
+  if(!/^\d{15}$/.test(val)){
+    el.textContent='⚠ Número SUS deve ter exatamente 15 dígitos.';
+    input.classList.add('input-err');
+  } else { el.textContent=''; input.classList.remove('input-err'); }
+}
 
 // ─── Clear form ───────────────────────────────────────────────────────────────
 function limparForm(silent) {
