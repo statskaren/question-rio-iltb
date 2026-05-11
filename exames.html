@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resultados dos Exames — TB</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; color: #111; font-size: 14px; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 200;
+    background: #1a3a5c; color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1.5rem; gap: 12px; flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar h2 { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+  .counter-badge {
+    background: #e8f4fd; color: #1a3a5c; border-radius: 20px;
+    padding: 3px 12px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  }
+  .digitador-wrap { display: flex; align-items: center; gap: 6px; }
+  .digitador-wrap label { font-size: 12px; opacity: 0.8; white-space: nowrap; }
+  .digitador-wrap input {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px;
+    font-family: Arial, sans-serif; width: 140px; outline: none;
+  }
+  .digitador-wrap input::placeholder { color: rgba(255,255,255,0.5); }
+  .topbar-right { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tbtn {
+    padding: 6px 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4);
+    font-size: 12px; font-weight: 700; cursor: pointer; font-family: Arial, sans-serif;
+    white-space: nowrap;
+  }
+  .tbtn-ghost { background: transparent; color: #fff; }
+  .tbtn-ghost:hover { background: rgba(255,255,255,0.1); }
+  .tbtn-dl { background: #fff; color: #1a3a5c; border-color: #fff; }
+  .tbtn-dl:hover { background: #e8f4fd; }
+  .tbtn-red { background: transparent; color: #ffaaaa; border-color: #ffaaaa; }
+  .tbtn-red:hover { background: rgba(255,100,100,0.1); }
+
+  .sheets-banner {
+    background: #fff8e1; border-bottom: 1px solid #f0c040;
+    padding: 8px 1.5rem; font-size: 12px; color: #5a4000;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .sheets-banner input {
+    border: 1px solid #c8a800; border-radius: 4px; padding: 4px 8px;
+    font-size: 12px; font-family: Arial, sans-serif; width: 380px; outline: none;
+    background: #fff;
+  }
+  .sheets-banner button {
+    padding: 4px 12px; border-radius: 4px; border: 1px solid #c8a800;
+    background: #f5c800; color: #3a2800; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: Arial, sans-serif;
+  }
+  .sheets-banner button:hover { background: #e0b400; }
+  .sheets-ok { background: #e8f5e9 !important; border-color: #4caf50 !important; color: #1b5e20 !important; font-size: 12px; padding: 8px 1.5rem; }
+
+  .page { max-width: 820px; margin: 0 auto; background: #fff; padding: 1.5rem 2rem 2rem; }
+
+  .project-title {
+    text-align: center; margin-bottom: 1rem;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #1a3a5c; line-height: 1.5;
+  }
+  h1 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+       text-align: center; margin-bottom: 1.2rem; border-bottom: 1.5px solid #333;
+       padding-bottom: 0.6rem; }
+
+  .header-grid { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; margin-bottom: 1.2rem; }
+  .field-group { display: flex; flex-direction: column; gap: 3px; }
+  .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #555; }
+  .line-input {
+    border: none; border-bottom: 1px solid #999; padding: 4px 2px;
+    font-size: 13px; background: transparent; width: 100%; outline: none;
+    font-family: Arial, sans-serif;
+  }
+  .line-input:focus { border-bottom-color: #1a3a5c; }
+  .line-input.input-err { border-bottom-color: #c00 !important; }
+
+  .section { margin-bottom: 0.9rem; border: 1px solid #ddd; border-radius: 4px;
+             padding: 0.8rem 0.9rem; background: #fff; }
+  .section.invalid { border-color: #c00; background: #fff8f8; }
+  .q-num { display: inline-flex; align-items: center; justify-content: center;
+           width: 21px; height: 21px; border-radius: 50%; background: #e8f0f8;
+           font-size: 11px; font-weight: 700; color: #1a3a5c; margin-right: 6px; flex-shrink: 0; }
+  .q-header { display: flex; align-items: flex-start; margin-bottom: 0.5rem; }
+  .q-text { font-size: 13px; font-weight: 700; padding-top: 2px; }
+
+  .radio-row, .check-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .radio-row input[type=radio], .check-row input[type=checkbox] {
+    width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; accent-color: #1a3a5c;
+  }
+  .radio-row label, .check-row label { font-size: 13px; cursor: pointer; }
+
+  .indent { margin-left: 22px; margin-top: 7px; border-left: 2px solid #cde; padding-left: 10px; }
+  .sub-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase;
+             letter-spacing: 0.06em; color: #555; margin-bottom: 4px; }
+  .inline-text {
+    border: none; border-bottom: 1px solid #999; background: transparent;
+    font-size: 13px; padding: 3px 2px; outline: none; font-family: Arial, sans-serif;
+  }
+  .inline-text:focus { border-bottom-color: #1a3a5c; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-err { font-size: 11px; color: #c00; margin-top: 3px; font-weight: 700; min-height: 14px; }
+  .error-msg { display: none; font-size: 11px; color: #c00; margin-top: 4px; font-weight: 700; }
+  .section.invalid .error-msg { display: block; }
+
+  .result-mm {
+    display: flex; align-items: center; gap: 8px; margin: 8px 0;
+  }
+  .result-mm input {
+    border: none; border-bottom: 1px solid #999; background: transparent;
+    font-size: 13px; padding: 3px 2px; outline: none; font-family: Arial, sans-serif;
+    width: 70px;
+  }
+  .result-mm input:focus { border-bottom-color: #1a3a5c; }
+  .result-mm span { font-size: 13px; color: #555; }
+
+  textarea.obs {
+    width: 100%; min-height: 80px; border: 1px solid #ddd; border-radius: 4px;
+    padding: 7px; font-size: 13px; font-family: Arial, sans-serif; resize: vertical; outline: none;
+  }
+  textarea.obs:focus { border-color: #1a3a5c; }
+
+  .action-bar {
+    position: sticky; bottom: 0; background: #fff;
+    border-top: 1px solid #ddd; padding: 0.65rem 1rem;
+    display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; z-index: 100;
+  }
+  .btn { padding: 8px 18px; border-radius: 4px; border: 1px solid #333;
+         font-size: 13px; font-weight: 700; cursor: pointer; font-family: Arial, sans-serif; }
+  .btn-primary { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+  .btn-primary:hover { background: #12294a; }
+  .btn-clear { background: #fff; color: #c00; border-color: #c00; }
+  .btn-clear:hover { background: #fff0f0; }
+
+  .toast {
+    position: fixed; bottom: 68px; right: 20px;
+    background: #1a3a5c; color: #fff; padding: 10px 16px;
+    border-radius: 6px; font-size: 13px; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none; z-index: 9999; max-width: 320px;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { background: #1e7a43; }
+  .toast.err { background: #c00; }
+
+  .entries-panel {
+    max-width: 820px; margin: 0 auto; background: #f7faff;
+    border-top: 2px solid #1a3a5c; padding: 0.75rem 1.5rem; display: none;
+  }
+  .entries-panel.has-data { display: block; }
+  .entries-title { font-size: 12px; font-weight: 700; color: #1a3a5c;
+                   text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .entry-list { display: flex; flex-direction: column; gap: 5px; }
+  .entry-item {
+    background: #fff; border: 1px solid #c8d8ea; border-radius: 4px;
+    padding: 6px 10px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px;
+  }
+  .entry-del { background: none; border: none; color: #c00; cursor: pointer;
+               font-size: 14px; font-weight: 700; padding: 0 4px; line-height: 1; }
+
+  .spinner-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+    align-items: center; justify-content: center; z-index: 9999;
+  }
+  .spinner-overlay.active { display: flex; }
+  .spinner-box {
+    background: #fff; border-radius: 8px; padding: 24px 32px;
+    text-align: center; font-size: 14px; font-weight: 700; color: #1a3a5c;
+  }
+  .spinner { width: 32px; height: 32px; border: 3px solid #c8d8ea;
+             border-top-color: #1a3a5c; border-radius: 50%;
+             animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 600px) {
+    .page { padding: 1rem; }
+    .header-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .topbar { padding: 0.5rem 1rem; }
+    .sheets-banner input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-box">
+    <div class="spinner"></div>
+    Enviando para o Google Sheets...
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <h2>Resultados dos Exames — TB</h2>
+    <span class="counter-badge" id="counterBadge">0 registros salvos</span>
+    <div class="digitador-wrap">
+      <label for="digitador">Digitador:</label>
+      <input type="text" id="digitador" placeholder="Seu nome" />
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="tbtn tbtn-ghost" onclick="toggleConfig()">⚙ Configurar Sheets</button>
+    <button class="tbtn tbtn-dl" onclick="baixarExcel()">⬇ Baixar planilha local</button>
+    <button class="tbtn tbtn-red" onclick="limparTudo()">🗑 Apagar todos</button>
+  </div>
+</div>
+
+<div id="sheetsBanner" class="sheets-banner">
+  <strong>Google Sheets:</strong>
+  <span>Cole aqui a URL do seu Apps Script:</span>
+  <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+  <button onclick="salvarUrl()">Salvar URL</button>
+  <span style="opacity:0.7;font-size:11px;">Use uma aba diferente da planilha principal.</span>
+</div>
+
+<div class="page">
+  <p class="project-title">Projeto "Tuberculose latente e ativa em trabalhadores e profissionais de saúde da rede de atenção em duas regiões do estado de São Paulo - Brasil"</p>
+  <h1>Resultados dos Exames dos Participantes</h1>
+
+  <!-- Cabeçalho -->
+  <div class="header-grid">
+    <div class="field-group">
+      <span class="lbl">Nº do questionário <span style="color:#c00;font-size:12px;">*</span></span>
+      <input class="line-input" id="num_quest" type="text" />
+    </div>
+    <div class="field-group">
+      <span class="lbl">Estabelecimento de saúde <span style="color:#c00;font-size:12px;">*</span></span>
+      <input class="line-input" id="estabelecimento" type="text" />
+    </div>
+    <div class="field-group">
+      <span class="lbl">Data <span style="color:#c00;font-size:12px;">*</span></span>
+      <input class="line-input" id="data_form" type="date" />
+    </div>
+  </div>
+
+  <!-- Nome -->
+  <div class="section">
+    <div class="field-group">
+      <span class="lbl">Nome do participante</span>
+      <input class="line-input" id="nome" type="text" />
+    </div>
+  </div>
+
+  <!-- 1. PPD -->
+  <div class="section">
+    <div class="q-header"><span class="q-num">1</span><span class="q-text">PPD (Prova Tuberculínica)</span></div>
+
+    <div class="two-col" style="margin-bottom:10px;">
+      <div class="field-group">
+        <span class="lbl">Data de aplicação</span>
+        <input class="line-input" id="ppd_data_aplic" type="date" />
+      </div>
+      <div class="field-group">
+        <span class="lbl">Data da leitura</span>
+        <input class="line-input" id="ppd_data_leit" type="date" />
+      </div>
+    </div>
+
+    <div class="result-mm">
+      <span class="lbl" style="white-space:nowrap;">Resultado:</span>
+      <input type="number" id="ppd_mm" min="0" max="50" placeholder="0" oninput="valPPDmm(this)" />
+      <span>mm</span>
+    </div>
+    <div class="field-err" id="ppd_mm_err"></div>
+
+    <div style="margin-top:8px;">
+      <div class="sub-lbl">Classificação</div>
+      <div class="radio-row"><input type="radio" name="ppd_class" value="Negativo"/><label>Negativo</label></div>
+      <div class="radio-row"><input type="radio" name="ppd_class" value="≥5mm"/><label>≥ 5 mm</label></div>
+      <div class="radio-row"><input type="radio" name="ppd_class" value="≥10mm"/><label>≥ 10 mm</label></div>
+    </div>
+  </div>
+
+  <!-- 2. Baciloscopia -->
+  <div class="section">
+    <div class="q-header"><span class="q-num">2</span><span class="q-text">Baciloscopia</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px;">
+      <div class="radio-row"><input type="radio" name="bacilo" value="Negativa"/><label>Negativa</label></div>
+      <div class="radio-row"><input type="radio" name="bacilo" value="Positiva +"/><label>Positiva +</label></div>
+      <div class="radio-row"><input type="radio" name="bacilo" value="Positiva ++"/><label>Positiva ++</label></div>
+      <div class="radio-row"><input type="radio" name="bacilo" value="Positiva +++"/><label>Positiva +++</label></div>
+      <div class="radio-row">
+        <input type="radio" name="bacilo" value="Não realizada" onchange="tog('bacilo_det',true)" />
+        <label>Não realizada. Motivo:</label>
+        <input class="inline-text" id="bacilo_motivo" type="text" style="width:160px;" />
+      </div>
+    </div>
+    <!-- hide motivo field when other options selected -->
+    <script>
+      document.querySelectorAll('input[name="bacilo"]').forEach(function(el){
+        if(el.value !== 'Não realizada') {
+          el.addEventListener('change', function(){ document.getElementById('bacilo_motivo').value=''; });
+        }
+      });
+    </script>
+  </div>
+
+  <!-- 3. Cultura -->
+  <div class="section">
+    <div class="q-header"><span class="q-num">3</span><span class="q-text">Cultura</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px;">
+      <div class="radio-row"><input type="radio" name="cultura" value="Negativa"/><label>Negativa</label></div>
+      <div class="radio-row"><input type="radio" name="cultura" value="Positiva"/><label>Positiva</label></div>
+      <div class="radio-row"><input type="radio" name="cultura" value="Contaminada"/><label>Contaminada</label></div>
+      <div class="radio-row">
+        <input type="radio" name="cultura" value="Não realizada" />
+        <label>Não realizada. Motivo:</label>
+        <input class="inline-text" id="cultura_motivo" type="text" style="width:160px;" />
+      </div>
+    </div>
+    <script>
+      document.querySelectorAll('input[name="cultura"]').forEach(function(el){
+        if(el.value !== 'Não realizada') {
+          el.addEventListener('change', function(){ document.getElementById('cultura_motivo').value=''; });
+        }
+      });
+    </script>
+  </div>
+
+  <!-- 4. Identificação -->
+  <div class="section">
+    <div class="q-header"><span class="q-num">4</span><span class="q-text">Identificação</span></div>
+    <div style="margin-top:4px;">
+      <div class="radio-row"><input type="radio" name="identificacao" value="M. tuberculosis"/><label><em>M. tuberculosis</em></label></div>
+      <div class="radio-row">
+        <input type="radio" name="identificacao" value="Outra"/>
+        <label>Outra. Qual?</label>
+        <input class="inline-text" id="ident_outra" type="text" style="width:160px;" />
+      </div>
+      <div class="radio-row"><input type="radio" name="identificacao" value="Não aplicável"/><label>Não aplicável</label></div>
+    </div>
+    <script>
+      document.querySelectorAll('input[name="identificacao"]').forEach(function(el){
+        if(el.value !== 'Outra') {
+          el.addEventListener('change', function(){ document.getElementById('ident_outra').value=''; });
+        }
+      });
+    </script>
+  </div>
+
+  <!-- 5. Teste de sensibilidade -->
+  <div class="section">
+    <div class="q-header"><span class="q-num">5</span><span class="q-text">Teste de Sensibilidade</span></div>
+    <div style="margin-top:4px;">
+      <div class="radio-row"><input type="radio" name="sensib" value="Sensível"/><label>Sensível</label></div>
+      <div class="radio-row"><input type="radio" name="sensib" value="Resistente à INH e RMP"/><label>Resistente à INH e RMP</label></div>
+      <div class="radio-row"><input type="radio" name="sensib" value="Resistente à INH, RMP e PZA"/><label>Resistente à INH, RMP e PZA</label></div>
+      <div class="radio-row">
+        <input type="radio" name="sensib" value="Resistente a outras drogas"/>
+        <label>Resistente a outras drogas. Quais?</label>
+        <input class="inline-text" id="sensib_outras" type="text" style="width:150px;" />
+      </div>
+      <div class="radio-row"><input type="radio" name="sensib" value="Não realizado"/><label>Não realizado</label></div>
+    </div>
+    <script>
+      document.querySelectorAll('input[name="sensib"]').forEach(function(el){
+        if(el.value !== 'Resistente a outras drogas') {
+          el.addEventListener('change', function(){ document.getElementById('sensib_outras').value=''; });
+        }
+      });
+    </script>
+  </div>
+
+  <!-- Observações -->
+  <div class="section">
+    <div class="q-header"><span class="q-num" style="background:#eee;color:#888;">—</span><span class="q-text">Observações</span></div>
+    <textarea class="obs" id="observacoes" placeholder="Observações adicionais..."></textarea>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-clear" onclick="limparForm()">↺ Limpar formulário</button>
+    <button class="btn btn-primary" onclick="salvarRegistro()">✔ Salvar e próximo participante</button>
+  </div>
+</div>
+
+<div class="entries-panel" id="entriesPanel">
+  <div class="entries-title" id="entriesTitle">Registros salvos nesta sessão</div>
+  <div class="entry-list" id="entryList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var entries = [];
+var sheetsUrl = localStorage.getItem('sheetsUrlExames') || '';
+if (sheetsUrl) showUrlOk();
+
+var COLS = [
+  'digitador','timestamp',
+  'num_questionario','estabelecimento','data','nome',
+  'ppd_data_aplicacao','ppd_data_leitura','ppd_mm','ppd_classificacao',
+  'baciloscopia','baciloscopia_motivo',
+  'cultura','cultura_motivo',
+  'identificacao','identificacao_outra',
+  'teste_sensibilidade','sensib_outras_drogas',
+  'observacoes'
+];
+
+var LABELS = {
+  digitador:'Digitador', timestamp:'Data/Hora registro',
+  num_questionario:'Nº Questionário', estabelecimento:'Estabelecimento', data:'Data', nome:'Nome',
+  ppd_data_aplicacao:'PPD - Data aplicação', ppd_data_leitura:'PPD - Data leitura',
+  ppd_mm:'PPD - Resultado (mm)', ppd_classificacao:'PPD - Classificação',
+  baciloscopia:'Baciloscopia', baciloscopia_motivo:'Baciloscopia - Motivo não realização',
+  cultura:'Cultura', cultura_motivo:'Cultura - Motivo não realização',
+  identificacao:'Identificação', identificacao_outra:'Identificação - Qual',
+  teste_sensibilidade:'Teste de Sensibilidade', sensib_outras_drogas:'Resistente a outras drogas - Quais',
+  observacoes:'Observações'
+};
+
+function tog(id, show) { var e=document.getElementById(id); if(e) e.style.display=show?'block':'none'; }
+function v(id) { return (document.getElementById(id)||{}).value||''; }
+function r(name) { var e=document.querySelector('input[name="'+name+'"]:checked'); return e?e.value:''; }
+
+function showToast(msg, tipo) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(tipo?' '+tipo:'');
+  setTimeout(function(){t.className='toast';},3500);
+}
+
+function valPPDmm(input) {
+  var el=document.getElementById('ppd_mm_err');
+  if(!el) return;
+  var val=parseFloat(input.value);
+  if(input.value===''){ el.textContent=''; input.classList.remove('input-err'); return; }
+  if(isNaN(val)||val<0||val>50){
+    el.textContent='⚠ Resultado deve ser entre 0 e 50 mm.';
+    input.classList.add('input-err');
+  } else { el.textContent=''; input.classList.remove('input-err'); }
+}
+
+function coletarDados() {
+  return {
+    digitador: v('digitador')||'—',
+    timestamp: new Date().toLocaleString('pt-BR'),
+    num_questionario: v('num_quest'),
+    estabelecimento: v('estabelecimento'),
+    data: v('data_form'),
+    nome: v('nome'),
+    ppd_data_aplicacao: v('ppd_data_aplic'),
+    ppd_data_leitura: v('ppd_data_leit'),
+    ppd_mm: v('ppd_mm'),
+    ppd_classificacao: r('ppd_class'),
+    baciloscopia: r('bacilo'),
+    baciloscopia_motivo: v('bacilo_motivo'),
+    cultura: r('cultura'),
+    cultura_motivo: v('cultura_motivo'),
+    identificacao: r('identificacao'),
+    identificacao_outra: v('ident_outra'),
+    teste_sensibilidade: r('sensib'),
+    sensib_outras_drogas: v('sensib_outras'),
+    observacoes: v('observacoes')
+  };
+}
+
+function validar() {
+  var ok=true;
+  var campos = [
+    {field:'num_quest', chk:function(){return v('num_quest').trim()!=='';}, msg:'Nº do questionário obrigatório.'},
+    {field:'estabelecimento', chk:function(){return v('estabelecimento').trim()!=='';}, msg:'Estabelecimento obrigatório.'},
+    {field:'data_form', chk:function(){return v('data_form')!=='';}, msg:'Data obrigatória.'}
+  ];
+  campos.forEach(function(o){
+    var el=document.getElementById(o.field);
+    if(!o.chk()){
+      if(el) el.classList.add('input-err');
+      ok=false;
+    } else {
+      if(el) el.classList.remove('input-err');
+    }
+  });
+  // check field-level errors
+  var errEls=document.querySelectorAll('.field-err');
+  for(var i=0;i<errEls.length;i++){
+    if(errEls[i].textContent.trim()!==''){ok=false;}
+  }
+  return ok;
+}
+
+function salvarRegistro() {
+  if(!validar()){
+    showToast('Corrija os campos obrigatórios antes de salvar.','err');
+    var firstErr=document.querySelector('.input-err');
+    if(firstErr) firstErr.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  var dados=coletarDados();
+  entries.push(dados);
+  renderEntries();
+  updateCounter();
+  if(sheetsUrl) enviarSheets(dados);
+  limparForm(true);
+  showToast('Participante '+entries.length+' salvo! Formulário pronto para o próximo.','ok');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderEntries() {
+  var panel=document.getElementById('entriesPanel');
+  var list=document.getElementById('entryList');
+  var title=document.getElementById('entriesTitle');
+  if(entries.length===0){panel.classList.remove('has-data');return;}
+  panel.classList.add('has-data');
+  title.textContent='Registros salvos nesta sessão ('+entries.length+')';
+  list.innerHTML='';
+  entries.forEach(function(e,i){
+    var item=document.createElement('div');
+    item.className='entry-item';
+    item.innerHTML='<span><strong>#'+(i+1)+'</strong> &nbsp;Nº '+e.num_questionario+' — '+e.nome
+      +' &nbsp;<span style="color:#888;font-size:11px;">'+e.digitador+' — '+e.timestamp+'</span></span>'
+      +'<button class="entry-del" onclick="removerEntrada('+i+')">×</button>';
+    list.appendChild(item);
+  });
+}
+
+function removerEntrada(i) {
+  if(!confirm('Remover o registro do questionário Nº '+entries[i].num_questionario+'?')) return;
+  entries.splice(i,1);
+  renderEntries();
+  updateCounter();
+}
+
+function updateCounter() {
+  var b=document.getElementById('counterBadge');
+  b.textContent=entries.length+(entries.length===1?' registro salvo':' registros salvos');
+}
+
+function enviarSheets(dados) {
+  if(!sheetsUrl) return;
+  document.getElementById('spinnerOverlay').classList.add('active');
+  fetch(sheetsUrl,{
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(dados)
+  }).then(function(){
+    document.getElementById('spinnerOverlay').classList.remove('active');
+  }).catch(function(){
+    document.getElementById('spinnerOverlay').classList.remove('active');
+    showToast('Não foi possível enviar ao Google Sheets.','err');
+  });
+}
+
+function toggleConfig() {
+  var b=document.getElementById('sheetsBanner');
+  b.style.display=(b.style.display==='none'?'':'none');
+}
+
+function salvarUrl() {
+  var url=document.getElementById('sheetsUrl').value.trim();
+  if(!url){showToast('Cole a URL do Apps Script.','err');return;}
+  sheetsUrl=url;
+  localStorage.setItem('sheetsUrlExames',url);
+  showUrlOk();
+  showToast('URL salva!','ok');
+}
+
+function showUrlOk() {
+  var b=document.getElementById('sheetsBanner');
+  b.className='sheets-banner sheets-ok';
+  b.innerHTML='✔ Google Sheets configurado. &nbsp;<button onclick="resetUrl()" style="background:none;border:none;color:#1b5e20;font-size:12px;cursor:pointer;text-decoration:underline;">Alterar URL</button>';
+}
+
+function resetUrl() {
+  sheetsUrl='';
+  localStorage.removeItem('sheetsUrlExames');
+  var b=document.getElementById('sheetsBanner');
+  b.className='sheets-banner';
+  b.innerHTML='<strong>Google Sheets:</strong><span>Cole aqui a URL do seu Apps Script:</span>'
+    +'<input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/.../exec" />'
+    +'<button onclick="salvarUrl()">Salvar URL</button>'
+    +'<span style="opacity:0.7;font-size:11px;">Use uma aba diferente da planilha principal.</span>';
+}
+
+function baixarExcel() {
+  if(entries.length===0){showToast('Nenhum registro salvo ainda.','err');return;}
+  var header=COLS.map(function(c){return LABELS[c]||c;});
+  var rows=[header];
+  entries.forEach(function(e){
+    rows.push(COLS.map(function(c){return e[c]||'';}));
+  });
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=COLS.map(function(){return {wch:22};});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Exames TB');
+  var ts=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'exames_TB_'+ts+'.xlsx');
+  showToast('Planilha com '+entries.length+' registros baixada!','ok');
+}
+
+function limparForm(silent) {
+  document.querySelectorAll('input[type=text],input[type=number],input[type=date],textarea').forEach(function(el){
+    if(el.id!=='digitador') el.value='';
+  });
+  document.querySelectorAll('input[type=radio]').forEach(function(el){el.checked=false;});
+  document.querySelectorAll('.field-err').forEach(function(el){el.textContent='';});
+  document.querySelectorAll('.input-err').forEach(function(el){el.classList.remove('input-err');});
+  if(!silent) showToast('Formulário limpo.','');
+}
+
+function limparTudo() {
+  if(entries.length===0){showToast('Nenhum registro para apagar.','');return;}
+  if(!confirm('Apagar TODOS os '+entries.length+' registros desta sessão?')) return;
+  entries=[];
+  renderEntries();
+  updateCounter();
+  showToast('Todos os registros foram apagados.','');
+}
+
+// Header required field highlight on blur
+document.addEventListener('DOMContentLoaded', function(){
+  ['num_quest','estabelecimento','data_form'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('blur', function(){
+      if(!el.value.trim()) el.classList.add('input-err');
+      else el.classList.remove('input-err');
+    });
+    el.addEventListener('input', function(){
+      if(el.value.trim()) el.classList.remove('input-err');
+    });
+  });
+});
+</script>
+</body>
+</html>
